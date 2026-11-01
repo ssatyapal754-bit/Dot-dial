@@ -11,14 +11,21 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Accept Android licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
+      - name: Find project folder
+        run: |
+          DIR=$(dirname "$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)")
+          echo "Project folder: $DIR"
+          echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
+          ls -la "$DIR"
+      - name: Accept licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle assembleDebug --no-daemon --stacktrace --console=plain
       - uses: actions/upload-artifact@v4
         with:
           name: DotDialer-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
